@@ -1,0 +1,9 @@
+{
+  "name": "pickem-app",
+  "version": "1.0.0",
+  "description": "NFL Pick'em League App",
+  "main": "index.html",
+  "dependencies": {
+    "airtable": "^0.11.4"
+  }
+}

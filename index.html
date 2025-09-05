@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFL Pick'em League 2025-2026</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .form-container, .page-container { max-width: 800px; margin: 2rem auto; padding: 1.5rem; background-color: #f9fafb; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+        .team-pick-button { transition: all 0.2s ease-in-out; border: 2px solid #e5e7eb; }
+        .team-pick-button.selected { background-color: #4f46e5; color: white; border-color: #4f46e5; transform: scale(1.02); }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #4f46e5; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 p-2">
+
+    <!-- All page content goes here -->
+    <div id="page-landing" class="page-container text-center"><h1 class="text-3xl sm:text-4xl font-bold text-gray-900">Welcome to the Pick'em League!</h1><p class="text-gray-600 mt-4 mb-8 text-lg">Please select your role to continue.</p><div class="flex flex-col sm:flex-row justify-center gap-4"><button id="show-user-login-btn" class="w-full sm:w-auto bg-indigo-600 text-white font-bold py-4 px-8 rounded-lg hover:bg-indigo-700 text-xl transition">I'm a Player</button><button id="show-admin-login-btn" class="w-full sm:w-auto bg-gray-700 text-white font-bold py-4 px-8 rounded-lg hover:bg-gray-800 text-xl transition">I'm the Admin</button></div></div>
+    <div id="page-user-login" class="page-container hidden"><h2 class="text-3xl font-bold text-gray-900 text-center">Player Login</h2><div class="mt-6 space-y-4"><div><label for="userName" class="block text-sm font-medium text-gray-700 mb-1">Select Your Name</label><select id="userName" name="userName" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-lg"></select></div><div><label for="userPassword" class="block text-sm font-medium text-gray-700 mb-1">Password</label><input type="password" id="userPassword" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-lg"></div><p id="user-error" class="text-red-500 text-sm hidden">Incorrect password.</p><button id="user-login-button" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition">Start Picking</button><div class="mt-4 text-center"><button id="back-to-landing-user-btn" class="text-sm text-gray-600 hover:text-indigo-600 transition">« Back to role selection</button></div></div></div>
+    <div id="page-admin-login" class="page-container hidden"><h2 class="text-3xl font-bold text-gray-900 text-center">Admin Login</h2><div class="mt-6"><label for="adminPassword" class="block text-sm font-medium text-gray-700 mb-1">Password</label><input type="password" id="adminPassword" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"><p id="admin-error" class="text-red-500 text-sm mt-2 hidden">Incorrect password.</p><button id="admin-login-button" class="w-full mt-4 bg-gray-700 text-white font-bold py-3 rounded-lg hover:bg-gray-800 transition">Login</button><div class="mt-6 text-center"><button id="back-to-landing-admin-btn" class="text-sm text-gray-600 hover:text-indigo-600 transition">« Back to role selection</button></div></div></div>
+    <div id="page-user-form" class="form-container hidden"><div class="flex justify-end mb-4"><button id="logout-user-btn" class="bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 text-sm transition">Logout</button></div><div class="text-center mb-8"><h1 class="text-3xl sm:text-4xl font-bold text-gray-900">NFL Pick'em League 2025-2026</h1><p id="user-greeting" class="text-gray-600 mt-2 text-lg"></p></div><div class="bg-white p-6 rounded-lg shadow-md mb-8"><label for="weekSelectorUser" class="block text-lg font-medium text-gray-700 mb-2 text-center">Select Week</label><select id="weekSelectorUser" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-lg"></select></div><div id="weeks-container-user"></div><div class="mt-12 text-center"><button id="submitPicksButton" class="bg-green-600 text-white font-bold py-4 px-10 rounded-lg hover:bg-green-700 transition text-xl flex items-center justify-center w-full sm:w-auto mx-auto"><span id="submit-button-text">Submit Picks</span><div id="submit-loader" class="loader hidden ml-3"></div></button><p id="submit-status" class="text-lg mt-4 text-center hidden"></p></div></div>
+    <div id="page-admin-form" class="form-container hidden"><div class="flex justify-end mb-4"><button id="logout-admin-btn" class="bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 text-sm transition">Logout</button></div><div class="text-center mb-8"><h1 class="text-3xl sm:text-4xl font-bold text-gray-900">Admin Panel</h1></div><div class="mb-8"><h2 class="text-2xl font-bold text-gray-800 border-b pb-2 mb-4">Set Point Values</h2><div class="bg-white p-6 rounded-lg shadow-md"><label for="weekSelectorAdmin" class="block text-lg font-medium text-gray-700 mb-2 text-center">Select Week to Edit</label><select id="weekSelectorAdmin" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-lg"></select></div><div id="weeks-container-admin" class="mt-4"></div><div class="mt-6 text-center"><button id="saveAdminChanges" class="bg-emerald-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-emerald-700 transition">Save Point Changes</button><p id="save-success-points" class="text-green-600 mt-4 text-sm text-center hidden">Point values saved!</p></div></div><div><h2 class="text-2xl font-bold text-gray-800 border-b pb-2 mb-4">Manage Players</h2><div id="player-management-container" class="space-y-3"></div><div class="mt-4"><button id="add-player-btn" class="text-indigo-600 font-semibold hover:underline">+ Add New Player</button></div><div class="mt-6 text-center"><button id="savePlayerChanges" class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 transition">Save Player List</button><p id="save-success-players" class="text-green-600 mt-4 text-sm text-center hidden">Player list saved!</p></div></div></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const initialSchedule = [ { week: 1, matches: [ { away: "Arizona Cardinals", home: "New Orleans Saints" }, { home: "Atlanta Falcons", away: "Tampa Bay Buccaneers" }, { away: "Baltimore Ravens", home: "Buffalo Bills" }, { away: "Carolina Panthers", home: "Jacksonville Jaguars" }, { home: "Chicago Bears", away: "Minnesota Vikings" }, { away: "Cincinnati Bengals", home: "Cleveland Browns" }, { away: "Dallas Cowboys", home: "Philadelphia Eagles" }, { away: "Denver Broncos", home: "Tennessee Titans" }, { away: "Detroit Lions", home: "Green Bay Packers" }, { away: "Houston Texans", home: "Los Angeles Rams" }, { home: "Indianapolis Colts", away: "Miami Dolphins" }, { away: "Kansas City Chiefs", home: "Los Angeles Chargers" }, { away: "Las Vegas Raiders", home: "New England Patriots" }, { away: "New York Giants", home: "Washington Commanders" }, { away: "Pittsburgh Steelers", home: "New York Jets" }, { home: "San Francisco 49ers", away: "Seattle Seahawks" } ] }, { week: 2, matches: [ { home: "Arizona Cardinals", away: "Carolina Panthers" }, { away: "Atlanta Falcons", home: "Minnesota Vikings" }, { home: "Baltimore Ravens", away: "Cleveland Browns" }, { away: "Buffalo Bills", home: "New York Jets" }, { away: "Chicago Bears", home: "Detroit Lions" }, { home: "Cincinnati Bengals", away: "Jacksonville Jaguars" }, { away: "Dallas Cowboys", home: "New York Giants" }, { away: "Denver Broncos", home: "Indianapolis Colts" }, { away: "Green Bay Packers", home: "Washington Commanders" }, { away: "Houston Texans", home: "Tampa Bay Buccaneers" }, { away: "Kansas City Chiefs", home: "Philadelphia Eagles" }, { away: "Las Vegas Raiders", home: "Los Angeles Chargers" }, { away: "Los Angeles Rams", home: "Tennessee Titans" }, { away: "Miami Dolphins", home: "New England Patriots" }, { away: "New Orleans Saints", home: "San Francisco 49ers" }, { away: "Pittsburgh Steelers", home: "Seattle Seahawks" } ] }, { week: 3, matches: [ { away: "Arizona Cardinals", home: "San Francisco 49ers" }, { away: "Atlanta Falcons", home: "Carolina Panthers" }, { away: "Detroit Lions", home: "Baltimore Ravens" }, { away: "Miami Dolphins", home: "Buffalo Bills" }, { away: "Dallas Cowboys", home: "Chicago Bears" }, { away: "Cincinnati Bengals", home: "Minnesota Vikings" }, { away: "Green Bay Packers", home: "Cleveland Browns" }, { away: "Denver Broncos", home: "Los Angeles Chargers" }, { away: "Houston Texans", home: "Jacksonville Jaguars" }, { away: "Indianapolis Colts", home: "Tennessee Titans" }, { away: "Kansas City Chiefs", home: "New York Giants" }, { away: "Los Angeles Rams", home: "Philadelphia Eagles" }, { away: "Las Vegas Raiders", home: "Washington Commanders" }, { away: "Pittsburgh Steelers", home: "New England Patriots" }, { away: "New Orleans Saints", home: "Seattle Seahawks" }, { away: "New York Jets", home: "Tampa Bay Buccaneers" } ] }, { week: 4, matches: [ { away: "Seattle Seahawks", home: "Arizona Cardinals" }, { away: "Washington Commanders", home: "Atlanta Falcons" }, { away: "Baltimore Ravens", home: "Kansas City Chiefs" }, { away: "New Orleans Saints", home: "Buffalo Bills" }, { away: "Carolina Panthers", home: "New England Patriots" }, { away: "Chicago Bears", home: "Las Vegas Raiders" }, { away: "Cincinnati Bengals", home: "Denver Broncos" }, { away: "Cleveland Browns", home: "Detroit Lions" }, { away: "Green Bay Packers", home: "Dallas Cowboys" }, { away: "San Francisco 49ers", home: "Jacksonville Jaguars" }, { away: "Indianapolis Colts", home: "Los Angeles Rams" }, { away: "New York Giants", home: "Los Angeles Chargers" }, { away: "New York Jets", home: "Miami Dolphins" }, { away: "Philadelphia Eagles", home: "Tampa Bay Buccaneers" }, { away: "Minnesota Vikings", home: "Pittsburgh Steelers" }, { away: "Houston Texans", home: "Tennessee Titans" } ] }, { week: 5, matches: [ { away: "Tennessee Titans", home: "Arizona Cardinals" }, { away: "New England Patriots", home: "Buffalo Bills" }, { away: "Miami Dolphins", home: "Carolina Panthers" }, { away: "Detroit Lions", home: "Cincinnati Bengals" }, { away: "Minnesota Vikings", home: "Cleveland Browns" }, { away: "Houston Texans", home: "Baltimore Ravens" }, { away: "Denver Broncos", home: "Philadelphia Eagles" }, { away: "Kansas City Chiefs", home: "Jacksonville Jaguars" }, { away: "Las Vegas Raiders", home: "Indianapolis Colts" }, { away: "San Francisco 49ers", home: "Los Angeles Rams" }, { away: "New York Giants", home: "New Orleans Saints" }, { away: "Dallas Cowboys", home: "New York Jets" }, { away: "Tampa Bay Buccaneers", home: "Seattle Seahawks" }, { away: "Washington Commanders", home: "Los Angeles Chargers" } ] }, { week: 6, matches: [ { away: "Indianapolis Colts", home: "Arizona Cardinals" }, { away: "Buffalo Bills", home: "Atlanta Falcons" }, { away: "Dallas Cowboys", home: "Carolina Panthers" }, { away: "Washington Commanders", home: "Chicago Bears" }, { away: "Pittsburgh Steelers", home: "Cleveland Browns" }, { away: "Detroit Lions", home: "Kansas City Chiefs" }, { away: "Los Angeles Chargers", home: "Miami Dolphins" }, { away: "New Orleans Saints", home: "New England Patriots" }, { away: "Philadelphia Eagles", home: "New York Giants" }, { away: "Cincinnati Bengals", home: "Green Bay Packers" }, { away: "Las Vegas Raiders", home: "Tennessee Titans" }, { away: "Los Angeles Rams", home: "Baltimore Ravens" } ] }, { week: 7, matches: [ { away: "Green Bay Packers", home: "Arizona Cardinals" }, { away: "San Francisco 49ers", home: "Atlanta Falcons" }, { away: "New York Jets", home: "Carolina Panthers" }, { away: "New Orleans Saints", home: "Chicago Bears" }, { away: "Miami Dolphins", home: "Cleveland Browns" }, { away: "Washington Commanders", home: "Dallas Cowboys" }, { away: "New York Giants", home: "Denver Broncos" }, { away: "Seattle Seahawks", home: "Houston Texans" }, { away: "Indianapolis Colts", home: "Los Angeles Chargers" }, { away: "Jacksonville Jaguars", home: "Los Angeles Rams" }, { away: "Philadelphia Eagles", home: "Minnesota Vikings" }, { away: "Cincinnati Bengals", home: "Pittsburgh Steelers" }, { away: "New England Patriots", home: "Tennessee Titans" } ] }, { week: 8, matches: [ { away: "Chicago Bears", home: "Baltimore Ravens" }, { away: "Carolina Panthers", home: "Buffalo Bills" }, { away: "New England Patriots", home: "Cleveland Browns" }, { away: "Denver Broncos", home: "Dallas Cowboys" }, { away: "Miami Dolphins", home: "Atlanta Falcons" }, { away: "Pittsburgh Steelers", home: "Green Bay Packers" }, { away: "San Francisco 49ers", home: "Houston Texans" }, { away: "Minnesota Vikings", home: "Los Angeles Chargers" }, { away: "Tampa Bay Buccaneers", home: "New Orleans Saints" }, { away: "New York Giants", home: "Philadelphia Eagles" }, { away: "Tennessee Titans", home: "Indianapolis Colts" }, { away: "Cincinnati Bengals", home: "New York Jets" } ] }, { week: 9, matches: [ { away: "Dallas Cowboys", home: "Arizona Cardinals" }, { away: "New England Patriots", home: "Atlanta Falcons" }, { away: "Kansas City Chiefs", home: "Buffalo Bills" }, { away: "Green Bay Packers", home: "Carolina Panthers" }, { away: "Cincinnati Bengals", home: "Chicago Bears" }, { away: "Minnesota Vikings", home: "Detroit Lions" }, { away: "Denver Broncos", home: "Houston Texans" }, { away: "Baltimore Ravens", home: "Miami Dolphins" }, { away: "New Orleans Saints", home: "Los Angeles Rams" }, { away: "New York Giants", home: "San Francisco 49ers" }, { away: "Indianapolis Colts", home: "Pittsburgh Steelers" }, { away: "Los Angeles Chargers", home: "Tennessee Titans" } ] }, { week: 10, matches: [ { away: "Seattle Seahawks", home: "Arizona Cardinals" }, { away: "Atlanta Falcons", home: "Indianapolis Colts" }, { away: "Minnesota Vikings", home: "Baltimore Ravens" }, { away: "Miami Dolphins", home: "Buffalo Bills" }, { away: "New York Giants", home: "Chicago Bears" }, { away: "Philadelphia Eagles", home: "Green Bay Packers" }, { away: "Jacksonville Jaguars", home: "Houston Texans" }, { away: "Denver Broncos", home: "Kansas City Chiefs" }, { away: "Las Vegas Raiders", home: "Denver Broncos" }, { away: "New York Jets", home: "Cleveland Browns" }, { away: "Carolina Panthers", home: "New Orleans Saints" }, { away: "Pittsburgh Steelers", home: "Los Angeles Chargers" }, { away: "Tampa Bay Buccaneers", home: "New England Patriots" }, { away: "Detroit Lions", home: "Washington Commanders" } ] }, { week: 11, matches: [ { away: "San Francisco 49ers", home: "Arizona Cardinals" }, { away: "Carolina Panthers", home: "Atlanta Falcons" }, { away: "Cleveland Browns", home: "Baltimore Ravens" }, { away: "Tampa Bay Buccaneers", home: "Buffalo Bills" }, { away: "Minnesota Vikings", home: "Chicago Bears" }, { away: "Philadelphia Eagles", home: "Detroit Lions" }, { away: "New York Giants", home: "Green Bay Packers" }, { away: "Tennessee Titans", home: "Houston Texans" }, { away: "Los Angeles Chargers", home: "Jacksonville Jaguars" }, { away: "Las Vegas Raiders", home: "Dallas Cowboys" }, { away: "Washington Commanders", home: "Miami Dolphins" }, { away: "New York Jets", home: "New England Patriots" }, { away: "Cincinnati Bengals", home: "Pittsburgh Steelers" } ] }, { week: 12, matches: [ { away: "Jacksonville Jaguars", home: "Arizona Cardinals" }, { away: "Atlanta Falcons", home: "New Orleans Saints" }, { away: "New York Jets", home: "Baltimore Ravens" }, { away: "Houston Texans", home: "Buffalo Bills" }, { away: "San Francisco 49ers", home: "Carolina Panthers" }, { away: "Pittsburgh Steelers", home: "Chicago Bears" }, { away: "Kansas City Chiefs", home: "Indianapolis Colts" }, { away: "Cleveland Browns", home: "Las Vegas Raiders" }, { away: "Seattle Seahawks", home: "Los Angeles Rams" }, { away: "Green Bay Packers", home: "Minnesota Vikings" }, { away: "Philadelphia Eagles", home: "Dallas Cowboys" }, { away: "Tennessee Titans", home: "Seattle Seahawks" } ] }, { week: 13, matches: [ { away: "Atlanta Falcons", home: "New York Jets" }, { away: "Cincinnati Bengals", home: "Baltimore Ravens" }, { away: "Pittsburgh Steelers", home: "Buffalo Bills" }, { away: "Los Angeles Rams", home: "Carolina Panthers" }, { away: "Chicago Bears", home: "Philadelphia Eagles" }, { away: "Kansas City Chiefs", home: "Dallas Cowboys" }, { away: "Green Bay Packers", home: "Detroit Lions" }, { away: "Indianapolis Colts", home: "Houston Texans" }, { away: "Washington Commanders", home: "Denver Broncos" }, { away: "Las Vegas Raiders", home: "Los Angeles Chargers" }, { away: "New Orleans Saints", home: "Miami Dolphins" }, { away: "New England Patriots", home: "New York Giants" } ] }, { week: 14, matches: [ { away: "Los Angeles Rams", home: "Arizona Cardinals" }, { away: "Seattle Seahawks", home: "Atlanta Falcons" }, { away: "Cincinnati Bengals", home: "Buffalo Bills" }, { away: "Dallas Cowboys", home: "Detroit Lions" }, { away: "Chicago Bears", home: "Green Bay Packers" }, { away: "Houston Texans", home: "Kansas City Chiefs" }, { away: "Indianapolis Colts", home: "Jacksonville Jaguars" }, { away: "Denver Broncos", home: "Las Vegas Raiders" }, { away: "Washington Commanders", home: "Minnesota Vikings" }, { away: "Cleveland Browns", home: "Tennessee Titans" }, { away: "Philadelphia Eagles", home: "Los Angeles Chargers" }, { away: "Miami Dolphins", home: "New York Jets" } ] }, { week: 15, matches: [ { away: "Houston Texans", home: "Arizona Cardinals" }, { away: "Tampa Bay Buccaneers", home: "Atlanta Falcons" }, { away: "Pittsburgh Steelers", home: "Baltimore Ravens" }, { away: "New England Patriots", home: "Buffalo Bills" }, { away: "New Orleans Saints", home: "Carolina Panthers" }, { away: "Cleveland Browns", home: "Chicago Bears" }, { away: "Minnesota Vikings", home: "Dallas Cowboys" }, { away: "Detroit Lions", home: "Los Angeles Rams" }, { away: "Jacksonville Jaguars", home: "Indianapolis Colts" }, { away: "Los Angeles Chargers", home: "Kansas City Chiefs" }, { away: "Las Vegas Raiders", home: "Philadelphia Eagles" }, { away: "San Francisco 49ers", home: "Tennessee Titans" } ] }, { week: 16, matches: [ { away: "Atlanta Falcons", home: "Arizona Cardinals" }, { away: "New England Patriots", home: "Baltimore Ravens" }, { away: "Cleveland Browns", home: "Buffalo Bills" }, { away: "Tampa Bay Buccaneers", home: "Carolina Panthers" }, { away: "Green Bay Packers", home: "Chicago Bears" }, { away: "Baltimore Ravens", home: "Cincinnati Bengals" }, { away: "Los Angeles Chargers", home: "Dallas Cowboys" }, { away: "Jacksonville Jaguars", home: "Denver Broncos" }, { away: "Pittsburgh Steelers", home: "Detroit Lions" }, { away: "Las Vegas Raiders", home: "Houston Texans" }, { away: "San Francisco 49ers", home: "Indianapolis Colts" }, { away: "New York Giants", home: "Minnesota Vikings" }, { away: "New York Jets", home: "New Orleans Saints" }, { away: "Philadelphia Eagles", home: "Washington Commanders" } ] }, { week: 17, matches: [ { away: "Cincinnati Bengals", home: "Arizona Cardinals" }, { away: "Los Angeles Rams", home: "Atlanta Falcons" }, { away: "Green Bay Packers", home: "Baltimore Ravens" }, { away: "Philadelphia Eagles", home: "Buffalo Bills" }, { away: "Seattle Seahawks", home: "Carolina Panthers" }, { away: "San Francisco 49ers", home: "Chicago Bears" }, { away: "Pittsburgh Steelers", home: "Cleveland Browns" }, { away: "Washington Commanders", home: "Dallas Cowboys" }, { away: "Kansas City Chiefs", home: "Denver Broncos" }, { away: "Minnesota Vikings", home: "Detroit Lions" }, { away: "Tennessee Titans", home: "Jacksonville Jaguars" }, { away: "Houston Texans", home: "Los Angeles Chargers" }, { away: "New York Jets", home: "New England Patriots" }, { away: "Dallas Cowboys", home: "New York Giants" }, { away: "New Orleans Saints", home: "Tennessee Titans" }, { away: "Miami Dolphins", home: "Tampa Bay Buccaneers" } ] }, { week: 18, matches: [ { away: "Arizona Cardinals", home: "Los Angeles Rams" }, { home: "Atlanta Falcons", home: "New Orleans Saints" }, { away: "Baltimore Ravens", home: "Pittsburgh Steelers" }, { away: "Buffalo Bills", home: "New York Jets" }, { away: "Carolina Panthers", home: "Tampa Bay Buccaneers" }, { away: "Chicago Bears", home: "Detroit Lions" }, { away: "Cincinnati Bengals", home: "Cleveland Browns" }, { away: "Dallas Cowboys", home: "New York Giants" }, { away: "Denver Broncos", home: "Los Angeles Chargers" }, { away: "Green Bay Packers", home: "Minnesota Vikings" }, { away: "Houston Texans", home: "Indianapolis Colts" }, { away: "Jacksonville Jaguars", home: "Tennessee Titans" }, { away: "Kansas City Chiefs", home: "Las Vegas Raiders" }, { away: "Miami Dolphins", home: "New England Patriots" }, { away: "Philadelphia Eagles", home: "Washington Commanders" }, { away: "Seattle Seahawks", home: "San Francisco 49ers" } ] }
+            ];
+            const initialPlayerNames = ["Raul", "Botello", "Christian", "Fer", "Albert", "Erick", "German", "Jaime", "Santi", "Tono"];
+            let scheduleData = []; let playerData = []; let currentUser = ''; let userPicks = {};
+            const pages = { landing: document.getElementById('page-landing'), userLogin: document.getElementById('page-user-login'), adminLogin: document.getElementById('page-admin-login'), userForm: document.getElementById('page-user-form'), adminForm: document.getElementById('page-admin-form') };
+            const showUserLoginBtn = document.getElementById('show-user-login-btn'); const showAdminLoginBtn = document.getElementById('show-admin-login-btn'); const userLoginBtn = document.getElementById('user-login-button'); const adminLoginBtn = document.getElementById('admin-login-button'); const backToLandingUserBtn = document.getElementById('back-to-landing-user-btn'); const backToLandingAdminBtn = document.getElementById('back-to-landing-admin-btn'); const logoutUserBtn = document.getElementById('logout-user-btn'); const logoutAdminBtn = document.getElementById('logout-admin-btn'); const weekSelectorUser = document.getElementById('weekSelectorUser'); const weekSelectorAdmin = document.getElementById('weekSelectorAdmin'); const userNameSelect = document.getElementById('userName'); const userPasswordInput = document.getElementById('userPassword'); const userError = document.getElementById('user-error'); const adminPasswordInput = document.getElementById('adminPassword'); const adminError = document.getElementById('admin-error'); const saveAdminChangesBtn = document.getElementById('saveAdminChanges'); const savePlayerChangesBtn = document.getElementById('savePlayerChanges'); const addPlayerBtn = document.getElementById('add-player-btn'); const submitPicksButton = document.getElementById('submitPicksButton'); const submitLoader = document.getElementById('submit-loader'); const submitButtonText = document.getElementById('submit-button-text'); const submitStatus = document.getElementById('submit-status');
+            const showPage = (pageId) => { Object.values(pages).forEach(page => page.classList.add('hidden')); pages[pageId].classList.remove('hidden'); };
+            const logout = () => { currentUser = ''; userPicks = {}; adminPasswordInput.value = ''; userPasswordInput.value = ''; showPage('landing'); };
+            const initializeData = () => {
+                const storedSchedule = localStorage.getItem('nflScheduleData');
+                if (storedSchedule) { scheduleData = JSON.parse(storedSchedule); } 
+                else {
+                    const highValueTeams = ['Eagles', 'Chargers', 'Browns', 'Bills', 'Bears'];
+                    scheduleData = initialSchedule.map(week => ({ ...week, matches: week.matches.map(match => {
+                        let value = 1;
+                        if (week.week === 1) { if (highValueTeams.some(team => match.home.includes(team) || match.away.includes(team))) value = 2; }
+                        return { ...match, value };
+                    })}));
+                    localStorage.setItem('nflScheduleData', JSON.stringify(scheduleData));
+                }
+                const storedPlayers = localStorage.getItem('nflPlayerData');
+                if (storedPlayers) { playerData = JSON.parse(storedPlayers); }
+                else {
+                    playerData = initialPlayerNames.sort((a, b) => a.localeCompare(b)).map(name => ({ name: name, password: Math.floor(10000 + Math.random() * 90000).toString() }));
+                    localStorage.setItem('nflPlayerData', JSON.stringify(playerData));
+                }
+            };
+            const populatePlayerNameSelector = () => {
+                userNameSelect.innerHTML = '<option value="">-- Select your name --</option>';
+                playerData.forEach(player => { const option = document.createElement('option'); option.value = player.name; option.textContent = player.name; userNameSelect.appendChild(option); });
+            };
+            const populateWeekSelectors = () => {
+                weekSelectorUser.innerHTML = ''; weekSelectorAdmin.innerHTML = '';
+                scheduleData.forEach(week => {
+                    const optionUser = document.createElement('option'); optionUser.value = week.week; optionUser.textContent = `Week ${week.week}`; weekSelectorUser.appendChild(optionUser);
+                    const optionAdmin = document.createElement('option'); optionAdmin.value = week.week; optionAdmin.textContent = `Week ${week.week}`; weekSelectorAdmin.appendChild(optionAdmin);
+                });
+            };
+            const renderUserForm = (weekNumber) => {
+                const container = document.getElementById('weeks-container-user');
+                const weekData = scheduleData.find(w => w.week === parseInt(weekNumber));
+                if (!userPicks[weekNumber]) userPicks[weekNumber] = {};
+                container.innerHTML = '';
+                const matchesGrid = document.createElement('div'); matchesGrid.className = 'grid grid-cols-1 gap-6';
+                weekData.matches.forEach((match, index) => {
+                    const matchId = `user-w${weekNumber}-m${index}`;
+                    const matchCard = document.createElement('div'); matchCard.className = 'match-card bg-white p-4 rounded-lg shadow-sm border border-gray-200';
+                    const header = document.createElement('div'); header.className = 'flex justify-between items-center mb-4';
+                    const teams = document.createElement('p'); teams.className = 'text-base sm:text-lg font-semibold text-gray-700'; teams.innerHTML = `${match.away} <span class="text-gray-500 font-normal">at</span> ${match.home}`;
+                    const valueBadge = document.createElement('div'); valueBadge.textContent = `${match.value} pt${match.value > 1 ? 's' : ''}`; valueBadge.className = `text-xs sm:text-sm font-bold py-1 px-2 rounded-full ${match.value > 1 ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-800'}`;
+                    header.appendChild(teams); header.appendChild(valueBadge);
+                    const buttonContainer = document.createElement('div'); buttonContainer.className = 'grid grid-cols-2 gap-2 sm:gap-4';
+                    const awayButton = document.createElement('button'); awayButton.textContent = match.away; awayButton.className = 'team-pick-button w-full p-3 rounded-lg font-semibold';
+                    const homeButton = document.createElement('button'); homeButton.textContent = match.home; homeButton.className = 'team-pick-button w-full p-3 rounded-lg font-semibold';
+                    if (userPicks[weekNumber][matchId] === match.away) awayButton.classList.add('selected');
+                    if (userPicks[weekNumber][matchId] === match.home) homeButton.classList.add('selected');
+                    awayButton.addEventListener('click', () => { userPicks[weekNumber][matchId] = match.away; awayButton.classList.add('selected'); homeButton.classList.remove('selected'); });
+                    homeButton.addEventListener('click', () => { userPicks[weekNumber][matchId] = match.home; homeButton.classList.add('selected'); awayButton.classList.remove('selected'); });
+                    buttonContainer.appendChild(awayButton); buttonContainer.appendChild(homeButton);
+                    matchCard.appendChild(header); matchCard.appendChild(buttonContainer);
+                    matchesGrid.appendChild(matchCard);
+                });
+                container.appendChild(matchesGrid);
+            };
+            const renderAdminForm = (weekNumber) => {
+                const container = document.getElementById('weeks-container-admin');
+                const weekData = scheduleData.find(w => w.week === parseInt(weekNumber));
+                container.innerHTML = '';
+                const adminGrid = document.createElement('div'); adminGrid.className = 'space-y-4';
+                weekData.matches.forEach((match, index) => {
+                    const matchId = `admin-w${weekNumber}-m${index}`;
+                    const matchRow = document.createElement('div'); matchRow.className = 'flex flex-col sm:flex-row items-center justify-between bg-white p-4 rounded-lg shadow-sm';
+                    const teams = document.createElement('p'); teams.className = 'text-gray-700 font-medium text-center sm:text-left mb-2 sm:mb-0 flex-1'; teams.textContent = `${match.away} at ${match.home}`;
+                    const inputWrapper = document.createElement('div'); inputWrapper.className = 'flex items-center gap-2';
+                    const label = document.createElement('label'); label.setAttribute('for', matchId); label.textContent = 'Points:'; label.className = 'text-sm font-medium';
+                    const input = document.createElement('input'); input.type = 'number'; input.id = matchId; input.min = '0'; input.value = match.value; input.className = 'w-20 p-2 border border-gray-300 rounded-lg text-center';
+                    inputWrapper.appendChild(label); inputWrapper.appendChild(input);
+                    matchRow.appendChild(teams); matchRow.appendChild(inputWrapper);
+                    adminGrid.appendChild(matchRow);
+                });
+                container.appendChild(adminGrid);
+            };
+            const renderAdminPlayerManagement = () => {
+                const container = document.getElementById('player-management-container');
+                container.innerHTML = '';
+                playerData.forEach((player) => {
+                    const playerRow = document.createElement('div'); playerRow.className = 'player-row flex flex-col sm:flex-row items-center gap-2 bg-white p-3 rounded-lg';
+                    playerRow.innerHTML = `<input type="text" value="${player.name}" class="player-name-input flex-1 w-full sm:w-auto p-2 border rounded" placeholder="Player Name"><input type="text" value="${player.password}" class="player-password-input flex-1 w-full sm:w-auto p-2 border rounded" placeholder="Password"><button class="remove-player-btn bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 w-full sm:w-auto">Remove</button>`;
+                    container.appendChild(playerRow);
+                });
+                document.querySelectorAll('.remove-player-btn').forEach(btn => { btn.addEventListener('click', (e) => e.target.closest('.player-row').remove()); });
+            };
+            showUserLoginBtn.addEventListener('click', () => { populatePlayerNameSelector(); showPage('userLogin'); });
+            showAdminLoginBtn.addEventListener('click', () => showPage('adminLogin'));
+            backToLandingUserBtn.addEventListener('click', () => showPage('landing'));
+            backToLandingAdminBtn.addEventListener('click', () => showPage('landing'));
+            logoutUserBtn.addEventListener('click', logout);
+            logoutAdminBtn.addEventListener('click', logout);
+            userLoginBtn.addEventListener('click', () => {
+                const selectedName = userNameSelect.value;
+                const enteredPassword = userPasswordInput.value;
+                const player = playerData.find(p => p.name === selectedName);
+                if (player && player.password === enteredPassword) {
+                    currentUser = selectedName; userError.classList.add('hidden');
+                    document.getElementById('user-greeting').textContent = `Welcome, ${currentUser}! Make your picks below.`;
+                    showPage('userForm'); renderUserForm(weekSelectorUser.value);
+                } else { userError.classList.remove('hidden'); }
+            });
+            adminLoginBtn.addEventListener('click', () => {
+                if (adminPasswordInput.value === '1234') {
+                    adminError.classList.add('hidden'); showPage('adminForm');
+                    renderAdminForm(weekSelectorAdmin.value); renderAdminPlayerManagement();
+                } else { adminError.classList.remove('hidden'); }
+            });
+            weekSelectorUser.addEventListener('change', (e) => { submitStatus.classList.add('hidden'); renderUserForm(e.target.value); });
+            weekSelectorAdmin.addEventListener('change', (e) => renderAdminForm(e.target.value));
+            addPlayerBtn.addEventListener('click', () => {
+                const container = document.getElementById('player-management-container');
+                const playerRow = document.createElement('div'); playerRow.className = 'player-row flex flex-col sm:flex-row items-center gap-2 bg-white p-3 rounded-lg';
+                playerRow.innerHTML = `<input type="text" value="" class="player-name-input flex-1 w-full sm:w-auto p-2 border rounded" placeholder="New Player Name"><input type="text" value="${Math.floor(10000 + Math.random() * 90000)}" class="player-password-input flex-1 w-full sm:w-auto p-2 border rounded" placeholder="Password"><button class="remove-player-btn bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 w-full sm:w-auto">Remove</button>`;
+                container.appendChild(playerRow);
+                playerRow.querySelector('.remove-player-btn').addEventListener('click', (e) => e.target.closest('.player-row').remove());
+            });
+            savePlayerChangesBtn.addEventListener('click', () => {
+                const newPlayerData = [];
+                document.querySelectorAll('.player-row').forEach(row => {
+                    const name = row.querySelector('.player-name-input').value.trim();
+                    const password = row.querySelector('.player-password-input').value.trim();
+                    if (name && password) { newPlayerData.push({ name, password }); }
+                });
+                playerData = newPlayerData.sort((a,b) => a.name.localeCompare(b.name));
+                localStorage.setItem('nflPlayerData', JSON.stringify(playerData));
+                const successMsg = document.getElementById('save-success-players');
+                successMsg.classList.remove('hidden');
+                setTimeout(() => successMsg.classList.add('hidden'), 2000);
+            });
+            saveAdminChangesBtn.addEventListener('click', () => {
+                const weekNumber = parseInt(weekSelectorAdmin.value);
+                const weekIndex = scheduleData.findIndex(w => w.week === weekNumber);
+                scheduleData[weekIndex].matches.forEach((match, index) => {
+                    const inputId = `admin-w${weekNumber}-m${index}`;
+                    scheduleData[weekIndex].matches[index].value = parseInt(document.getElementById(inputId).value) || 0;
+                });
+                localStorage.setItem('nflScheduleData', JSON.stringify(scheduleData));
+                const successMsg = document.getElementById('save-success-points');
+                successMsg.classList.remove('hidden');
+                setTimeout(() => successMsg.classList.add('hidden'), 2000);
+            });
+            submitPicksButton.addEventListener('click', () => {
+                const weekNumber = weekSelectorUser.value;
+                const weekData = scheduleData.find(w => w.week === parseInt(weekNumber));
+                const picksForWeek = userPicks[weekNumber] || {};
+                if (Object.keys(picksForWeek).length === 0) {
+                    alert('Please make at least one pick before submitting.');
+                    return;
+                }
+                submitPicksButton.disabled = true;
+                submitButtonText.textContent = 'Submitting...';
+                submitLoader.classList.remove('hidden');
+                submitStatus.classList.add('hidden');
+                const submissionData = {
+                    playerName: currentUser,
+                    picks: []
+                };
+                weekData.matches.forEach((match, index) => {
+                    const matchId = `user-w${weekNumber}-m${index}`;
+                    if(picksForWeek[matchId]) {
+                        submissionData.picks.push({
+                            week: weekNumber, away: match.away, home: match.home, pick: picksForWeek[matchId], value: match.value
+                        });
+                    }
+                });
+                // Note: The URL here points to the Netlify Function, not Google Scripts
+                fetch('/.netlify/functions/submit-pick', { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(submissionData) 
+                })
+                .then(res => {
+                    if (!res.ok) {
+                        return res.json().then(err => { throw new Error(err.message || 'Server error') });
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    submitStatus.textContent = data.message;
+                    submitStatus.className = 'text-lg mt-4 text-center text-green-600';
+                })
+                .catch(error => {
+                    submitStatus.textContent = `Error: ${error.message}`;
+                    submitStatus.className = 'text-lg mt-4 text-center text-red-600';
+                    console.error("Submission Error:", error);
+                })
+                .finally(() => {
+                    submitPicksButton.disabled = false;
+                    submitButtonText.textContent = 'Submit Picks';
+                    submitLoader.classList.add('hidden');
+                    submitStatus.classList.remove('hidden');
+                });
+            });
+            initializeData();
+            populateWeekSelectors();
+        });
+    </script>
+</body>
+</html>
+

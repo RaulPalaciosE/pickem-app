@@ -182,13 +182,13 @@
                 weeks.forEach(w => tableHTML += `<th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Wk ${w}</th>`);
                 tableHTML += `<th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th></tr></thead><tbody class="bg-white divide-y divide-gray-200">`;
                 
-                playerData.sort((a,b) => totalScores[b.fields.Name] - totalScores[a.fields.Name]).forEach(playerObj => {
+                playerData.sort((a,b) => (totalScores[b.fields.Name] || 0) - (totalScores[a.fields.Name] || 0)).forEach(playerObj => {
                     const player = playerObj.fields.Name;
                     tableHTML += `<tr><td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">${player}</td>`;
                     weeks.forEach(w => {
                         tableHTML += `<td class="px-2 py-4 whitespace-nowrap text-center text-gray-500">${weeklyScores[player] ? (weeklyScores[player][w] || 0) : 0}</td>`;
                     });
-                    tableHTML += `<td class="px-6 py-4 whitespace-nowrap text-center font-bold text-gray-900">${totalScores[player]}</td></tr>`;
+                    tableHTML += `<td class="px-6 py-4 whitespace-nowrap text-center font-bold text-gray-900">${totalScores[player] || 0}</td></tr>`;
                 });
 
                 tableHTML += `</tbody></table>`;
@@ -252,11 +252,11 @@
             });
             try {
                 const res = await fetch('/.netlify/functions/update-players', { method: 'POST', body: JSON.stringify(updates) });
-                if (!res.ok) throw new Error('Server error saving players.');
+                if (!res.ok) { const err = await res.json(); throw new Error(err.message); }
                 playerData = await res.json();
                 renderAdminPlayerManagement();
                 setAdminStatus("Player list saved!");
-            } catch (error) { setAdminStatus(`Error: ${error.message}`, true); }
+            } catch (error) { alert(`Error saving players: ${error.message}`); }
             finally { e.target.disabled = false; }
         });
 
@@ -271,10 +271,10 @@
             });
             try {
                 const res = await fetch('/.netlify/functions/update-schedule', { method: 'POST', body: JSON.stringify(recordsToUpdate) });
-                if (!res.ok) throw new Error('Server error saving schedule.');
+                if (!res.ok) { const err = await res.json(); throw new Error(err.message); }
                 scheduleData = await res.json();
                 setAdminStatus("Point values saved!");
-            } catch (error) { setAdminStatus(`Error: ${error.message}`, true); }
+            } catch (error) { alert(`Error saving points: ${error.message}`); }
             finally { e.target.disabled = false; }
         });
 
@@ -296,21 +296,19 @@
             }
 
             try {
-                // First, save the winners to the schedule
                 const scheduleUpdates = [];
                 document.querySelectorAll('#weeks-container-results [data-id]').forEach(row => {
                     scheduleUpdates.push({ id: row.dataset.id, fields: { 'Winning Team': row.querySelector('.winner-select').value } });
                 });
                 const scheduleRes = await fetch('/.netlify/functions/update-schedule', { method: 'POST', body: JSON.stringify(scheduleUpdates) });
-                if (!scheduleRes.ok) throw new Error('Could not save winners.');
+                if (!scheduleRes.ok) { const err = await scheduleRes.json(); throw new Error(`Could not save winners: ${err.message}`);}
                 scheduleData = await scheduleRes.json();
-
-                // Then, trigger score calculation
+                
                 const calcRes = await fetch('/.netlify/functions/calculate-scores', { method: 'POST', body: JSON.stringify({ week, winners }) });
-                if (!calcRes.ok) throw new Error('Could not calculate scores.');
+                if (!calcRes.ok) { const err = await calcRes.json(); throw new Error(`Could not calculate scores: ${err.message}`);}
                 const calcData = await calcRes.json();
                 setAdminStatus(calcData.message);
-            } catch (error) { setAdminStatus(`Error: ${error.message}`, true); }
+            } catch (error) { setAdminStatus(`${error.message}`, true); }
             finally { e.target.disabled = false; }
         });
         
@@ -339,7 +337,7 @@
             .then(({ok, data}) => {
                 if (!ok) throw new Error(data.message);
                 allElements.submitStatus.textContent = data.message;
-                allElements.submitStatus.className = 'text-lg mt-4 text-center text-green-600';
+                allElements.submitStatus.className = `text-lg mt-4 text-center ${ok ? 'text-green-600' : 'text-red-600'}`;
             })
             .catch(error => {
                 allElements.submitStatus.textContent = `Error: ${error.message}`;

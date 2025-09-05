@@ -114,7 +114,19 @@
             });
             container.appendChild(adminGrid);
         };
-        const renderAdminPlayerManagement = () => { /* ... code from previous turn ... */ };
+        const renderAdminPlayerManagement = () => {
+            const container = document.getElementById('player-management-container'); container.innerHTML = '';
+            playerData.forEach((player) => {
+                const playerRow = document.createElement('div'); playerRow.className = 'player-row flex flex-col sm:flex-row items-center gap-2 bg-white p-3 rounded-lg';
+                playerRow.dataset.id = player.id;
+                playerRow.innerHTML = `<input type="text" value="${player.fields.Name}" class="player-name-input flex-1 w-full sm:w-auto p-2 border rounded" placeholder="Player Name"><input type="text" value="${player.fields.Password}" class="player-password-input flex-1 w-full sm:w-auto p-2 border rounded" placeholder="Password"><button class="remove-player-btn bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 w-full sm:w-auto">Remove</button>`;
+                container.appendChild(playerRow);
+            });
+            document.querySelectorAll('.remove-player-btn').forEach(btn => { btn.addEventListener('click', (e) => {
+                e.target.closest('.player-row').dataset.deleted = "true";
+                e.target.closest('.player-row').classList.add('hidden');
+            }); });
+        };
         const renderAdminResults = (weekNumber) => {
             const container = document.getElementById('weeks-container-results');
             const matchesForWeek = scheduleData.filter(m => m.fields.Week === parseInt(weekNumber));
@@ -123,6 +135,7 @@
             matchesForWeek.forEach((match) => {
                 const matchRow = document.createElement('div'); matchRow.className = 'flex flex-col sm:flex-row items-center justify-between bg-white p-4 rounded-lg shadow-sm';
                 matchRow.dataset.matchIdentifier = `${match.fields['Away Team']}-${match.fields['Home Team']}`;
+                matchRow.dataset.id = match.id;
                 const teams = document.createElement('p'); teams.className = 'text-gray-700 font-medium text-center sm:text-left mb-2 sm:mb-0 flex-1'; teams.textContent = `${match.fields['Away Team']} at ${match.fields['Home Team']}`;
                 const selectWrapper = document.createElement('div');
                 const winnerSelect = document.createElement('select'); winnerSelect.className = 'winner-select w-48 p-2 border border-gray-300 rounded-lg';
@@ -145,7 +158,7 @@
                 
                 const weeklyScores = {};
                 const totalScores = {};
-                const weeks = [...new Set(scores.map(s => s.Week))].sort((a,b) => a - b);
+                const weeks = [...new Set(scheduleData.map(s => s.fields.Week))].sort((a,b) => a - b);
                 playerData.forEach(p => {
                     weeklyScores[p.fields.Name] = {};
                     totalScores[p.fields.Name] = 0;
@@ -159,23 +172,21 @@
                 });
 
                 const sortedPlayers = Object.keys(totalScores).sort((a, b) => totalScores[b] - totalScores[a]);
-                if (sortedPlayers.length > 0) {
+                if (sortedPlayers.length > 0 && totalScores[sortedPlayers[0]] > 0) {
                     winnerContainer.innerHTML = `Current Leader: <span class="font-bold text-indigo-600">${sortedPlayers[0]}</span> with ${totalScores[sortedPlayers[0]]} points.`;
                 } else {
                     winnerContainer.innerHTML = 'No scores have been calculated yet.';
                 }
                 
-                let tableHTML = `<table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50"><tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Player</th>`;
-                weeks.forEach(w => tableHTML += `<th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Wk ${w}</th>`);
-                tableHTML += `<th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th></tr></thead>
-                    <tbody class="bg-white divide-y divide-gray-200">`;
+                let tableHTML = `<table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Player</th>`;
+                weeks.forEach(w => tableHTML += `<th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Wk ${w}</th>`);
+                tableHTML += `<th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th></tr></thead><tbody class="bg-white divide-y divide-gray-200">`;
                 
-                sortedPlayers.forEach(player => {
+                playerData.sort((a,b) => totalScores[b.fields.Name] - totalScores[a.fields.Name]).forEach(playerObj => {
+                    const player = playerObj.fields.Name;
                     tableHTML += `<tr><td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">${player}</td>`;
                     weeks.forEach(w => {
-                        tableHTML += `<td class="px-6 py-4 whitespace-nowrap text-center text-gray-500">${weeklyScores[player][w] || 0}</td>`;
+                        tableHTML += `<td class="px-2 py-4 whitespace-nowrap text-center text-gray-500">${weeklyScores[player] ? (weeklyScores[player][w] || 0) : 0}</td>`;
                     });
                     tableHTML += `<td class="px-6 py-4 whitespace-nowrap text-center font-bold text-gray-900">${totalScores[player]}</td></tr>`;
                 });
@@ -184,23 +195,161 @@
                 container.innerHTML = tableHTML;
             } catch(e) { container.innerHTML = `<p class="text-red-500">Error loading leaderboard.</p>`; }
         };
-
+        
         allElements.showUserLoginBtn.addEventListener('click', () => { populatePlayerNameSelector(); showPage('userLogin'); });
         allElements.showAdminLoginBtn.addEventListener('click', () => showPage('adminLogin'));
         allElements.showResultsBtn.addEventListener('click', () => { renderResultsPage(); showPage('results'); });
         allElements.backBtns.forEach(btn => btn.addEventListener('click', () => showPage('landing')));
         allElements.logoutUserBtn.addEventListener('click', logout);
         allElements.logoutAdminBtn.addEventListener('click', logout);
-        allElements.userLoginBtn.addEventListener('click', () => { /* ... logic ... */ });
-        allElements.adminLoginBtn.addEventListener('click', () => { /* ... logic ... */ });
+
+        allElements.userLoginBtn.addEventListener('click', () => {
+            const selectedName = allElements.userNameSelect.value;
+            const enteredPassword = allElements.userPasswordInput.value;
+            const player = playerData.find(p => p.fields.Name === selectedName);
+            if (player && player.fields.Password === enteredPassword) {
+                currentUser = selectedName; allElements.userError.classList.add('hidden');
+                document.getElementById('user-greeting').textContent = `Welcome, ${currentUser}! Make your picks below.`;
+                showPage('userForm'); renderUserForm(allElements.weekSelectorUser.value);
+            } else { allElements.userError.classList.remove('hidden'); }
+        });
+        allElements.adminLoginBtn.addEventListener('click', () => {
+            if (allElements.adminPasswordInput.value === '1234') {
+                allElements.adminError.classList.add('hidden'); showPage('adminForm');
+                renderAdminForm(allElements.weekSelectorAdmin.value); 
+                renderAdminResults(allElements.weekSelectorResults.value);
+                renderAdminPlayerManagement();
+            } else { allElements.adminError.classList.remove('hidden'); }
+        });
+
         allElements.weekSelectorUser.addEventListener('change', (e) => { allElements.submitStatus.classList.add('hidden'); renderUserForm(e.target.value); });
         allElements.weekSelectorAdmin.addEventListener('change', (e) => renderAdminForm(e.target.value));
         allElements.weekSelectorResults.addEventListener('change', (e) => renderAdminResults(e.target.value));
-        allElements.addPlayerBtn.addEventListener('click', () => { /* ... logic ... */ });
-        allElements.savePlayerChangesBtn.addEventListener('click', async () => { /* ... logic ... */ });
-        allElements.saveAdminChangesBtn.addEventListener('click', async () => { /* ... logic ... */ });
-        allElements.calculateScoresButton.addEventListener('click', async () => { /* ... logic ... */ });
-        allElements.submitPicksButton.addEventListener('click', () => { /* ... logic ... */ });
+        
+        allElements.addPlayerBtn.addEventListener('click', () => {
+            const container = document.getElementById('player-management-container');
+            const playerRow = document.createElement('div'); playerRow.className = 'player-row flex flex-col sm:flex-row items-center gap-2 bg-white p-3 rounded-lg';
+            playerRow.dataset.id = "new-" + Date.now();
+            playerRow.innerHTML = `<input type="text" value="" class="player-name-input flex-1 w-full sm:w-auto p-2 border rounded" placeholder="New Player Name"><input type="text" value="12345" class="player-password-input flex-1 w-full sm:w-auto p-2 border rounded" placeholder="Password"><button class="remove-player-btn bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 w-full sm:w-auto">Remove</button>`;
+            container.appendChild(playerRow);
+            playerRow.querySelector('.remove-player-btn').addEventListener('click', (e) => e.target.closest('.player-row').remove());
+        });
+
+        allElements.savePlayerChangesBtn.addEventListener('click', async (e) => {
+            e.target.disabled = true;
+            const updates = { created: [], updated: [], deleted: [] };
+            document.querySelectorAll('.player-row').forEach(row => {
+                const id = row.dataset.id;
+                const name = row.querySelector('.player-name-input').value.trim();
+                const password = row.querySelector('.player-password-input').value.trim();
+                if(row.dataset.deleted === "true") {
+                    if(!id.startsWith("new-")) updates.deleted.push(id);
+                } else if (id.startsWith("new-")) {
+                    updates.created.push({ fields: { Name: name, Password: password } });
+                } else {
+                    updates.updated.push({ id, fields: { Name: name, Password: password } });
+                }
+            });
+            try {
+                const res = await fetch('/.netlify/functions/update-players', { method: 'POST', body: JSON.stringify(updates) });
+                if (!res.ok) throw new Error('Server error saving players.');
+                playerData = await res.json();
+                renderAdminPlayerManagement();
+                setAdminStatus("Player list saved!");
+            } catch (error) { setAdminStatus(`Error: ${error.message}`, true); }
+            finally { e.target.disabled = false; }
+        });
+
+        allElements.saveAdminChangesBtn.addEventListener('click', async (e) => {
+            e.target.disabled = true;
+            const recordsToUpdate = [];
+            document.querySelectorAll('#weeks-container-admin [data-id]').forEach(row => {
+                recordsToUpdate.push({
+                    id: row.dataset.id,
+                    fields: { Value: parseInt(row.querySelector('.match-value-input').value, 10) || 0 }
+                });
+            });
+            try {
+                const res = await fetch('/.netlify/functions/update-schedule', { method: 'POST', body: JSON.stringify(recordsToUpdate) });
+                if (!res.ok) throw new Error('Server error saving schedule.');
+                scheduleData = await res.json();
+                setAdminStatus("Point values saved!");
+            } catch (error) { setAdminStatus(`Error: ${error.message}`, true); }
+            finally { e.target.disabled = false; }
+        });
+
+        allElements.calculateScoresButton.addEventListener('click', async (e) => {
+            e.target.disabled = true;
+            const week = allElements.weekSelectorResults.value;
+            const winners = {};
+            let allWinnersSelected = true;
+            document.querySelectorAll('#weeks-container-results [data-match-identifier]').forEach(row => {
+                const winner = row.querySelector('.winner-select').value;
+                if(!winner) allWinnersSelected = false;
+                winners[row.dataset.matchIdentifier] = winner;
+            });
+
+            if (!allWinnersSelected) {
+                alert('Please select a winner for every match before calculating scores.');
+                e.target.disabled = false;
+                return;
+            }
+
+            try {
+                // First, save the winners to the schedule
+                const scheduleUpdates = [];
+                document.querySelectorAll('#weeks-container-results [data-id]').forEach(row => {
+                    scheduleUpdates.push({ id: row.dataset.id, fields: { 'Winning Team': row.querySelector('.winner-select').value } });
+                });
+                const scheduleRes = await fetch('/.netlify/functions/update-schedule', { method: 'POST', body: JSON.stringify(scheduleUpdates) });
+                if (!scheduleRes.ok) throw new Error('Could not save winners.');
+                scheduleData = await scheduleRes.json();
+
+                // Then, trigger score calculation
+                const calcRes = await fetch('/.netlify/functions/calculate-scores', { method: 'POST', body: JSON.stringify({ week, winners }) });
+                if (!calcRes.ok) throw new Error('Could not calculate scores.');
+                const calcData = await calcRes.json();
+                setAdminStatus(calcData.message);
+            } catch (error) { setAdminStatus(`Error: ${error.message}`, true); }
+            finally { e.target.disabled = false; }
+        });
+        
+        allElements.submitPicksButton.addEventListener('click', () => {
+            const weekNumber = allElements.weekSelectorUser.value;
+            const matchesForWeek = scheduleData.filter(m => m.fields.Week === parseInt(weekNumber));
+            const picksForWeek = userPicks[weekNumber] || {};
+            if (Object.keys(picksForWeek).length === 0) {
+                alert('Please make at least one pick before submitting.'); return;
+            }
+            allElements.submitPicksButton.disabled = true; allElements.submitButtonText.textContent = 'Submitting...';
+            allElements.submitLoader.classList.remove('hidden'); allElements.submitStatus.classList.add('hidden');
+            
+            const submissionData = {
+                playerName: currentUser,
+                picks: matchesForWeek
+                    .filter(match => picksForWeek[match.id])
+                    .map(match => ({
+                        week: weekNumber, away: match.fields['Away Team'], home: match.fields['Home Team'], 
+                        pick: picksForWeek[match.id], value: match.fields.Value
+                    }))
+            };
+            
+            fetch('/.netlify/functions/submit-pick', { method: 'POST', body: JSON.stringify(submissionData) })
+            .then(res => res.json().then(data => ({ ok: res.ok, data })))
+            .then(({ok, data}) => {
+                if (!ok) throw new Error(data.message);
+                allElements.submitStatus.textContent = data.message;
+                allElements.submitStatus.className = 'text-lg mt-4 text-center text-green-600';
+            })
+            .catch(error => {
+                allElements.submitStatus.textContent = `Error: ${error.message}`;
+                allElements.submitStatus.className = 'text-lg mt-4 text-center text-red-600';
+            })
+            .finally(() => {
+                allElements.submitPicksButton.disabled = false; allElements.submitButtonText.textContent = 'Submit Picks';
+                allElements.submitLoader.classList.add('hidden'); allElements.submitStatus.classList.remove('hidden');
+            });
+        });
         
         initializeData();
     });
